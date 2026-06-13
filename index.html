@@ -1,0 +1,1775 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kao — the wallet with a face</title>
+    <meta
+      name="description"
+      content="Kao is a desktop Ethereum wallet that verifies everything and trusts nothing. Safe multisig from day one, every tx simulated locally, every balance proven against consensus."
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="assets/icons/kao-icon-32.png"
+    />
+    <link rel="apple-touch-icon" href="assets/icons/kao-icon-256.png" />
+    <link rel="icon" type="image/svg+xml" href="assets/icons/kao-icon.svg" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;600;700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Nunito:wght@600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --void: oklch(12% 0.03 268);
+        --void2: oklch(16% 0.035 268);
+        --card: oklch(18% 0.035 268);
+        --mint: oklch(78% 0.22 160);
+        --mintdk: oklch(60% 0.18 160);
+        --cyan: oklch(80% 0.16 210);
+        --pink: oklch(74% 0.24 350);
+        --yell: oklch(86% 0.18 95);
+        --red: oklch(66% 0.24 25);
+        --paper: oklch(96% 0.012 175);
+        --ink: oklch(18% 0.02 268);
+        --line: oklch(34% 0.05 268);
+        --sub: oklch(70% 0.03 268);
+        --kao: "M PLUS Rounded 1c", "Nunito", sans-serif;
+        --term: "VT323", monospace;
+        --mono: "Space Grotesk", monospace;
+        --body: "Nunito", sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--body);
+        background: var(--void);
+        color: var(--paper);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+        overflow-x: hidden;
+        cursor: crosshair;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      ::selection {
+        background: var(--pink);
+        color: var(--void);
+      }
+      .wrap {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 32px;
+        position: relative;
+      }
+
+      /* ── CRT scanlines + vignette ── */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 99;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.16) 0 1px,
+          transparent 1px 3px
+        );
+        mix-blend-mode: multiply;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 98;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 58%,
+          rgba(0, 0, 0, 0.5) 100%
+        );
+      }
+
+      /* ── Animations ── */
+      @keyframes blink {
+        0%,
+        49% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes blinkslow {
+        0%,
+        59% {
+          opacity: 1;
+        }
+        60%,
+        100% {
+          opacity: 0.15;
+        }
+      }
+      .blink {
+        animation: blink 1s steps(1) infinite;
+      }
+
+      @keyframes slideL {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-50%);
+        }
+      }
+      @keyframes slideR {
+        from {
+          transform: translateX(-50%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes glitch {
+        0%,
+        86%,
+        100% {
+          text-shadow:
+            2px 0 var(--pink),
+            -2px 0 var(--cyan);
+          transform: translate(0);
+        }
+        88% {
+          text-shadow:
+            -4px 0 var(--pink),
+            4px 0 var(--cyan);
+          transform: translate(2px, -1px) skewX(-3deg);
+        }
+        90% {
+          text-shadow:
+            3px 0 var(--cyan),
+            -3px 0 var(--pink);
+          transform: translate(-2px, 1px);
+        }
+        92% {
+          text-shadow:
+            2px 0 var(--pink),
+            -2px 0 var(--cyan);
+          transform: translate(0);
+        }
+      }
+
+      @keyframes wobble {
+        0%,
+        100% {
+          transform: rotate(-4deg);
+        }
+        50% {
+          transform: rotate(4deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+        }
+      }
+
+      /* ── Kaomoji background field ── */
+      .kaofield {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        user-select: none;
+        z-index: 0;
+      }
+      .kaofield span {
+        position: absolute;
+        font-family: var(--kao);
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--mint);
+        opacity: 0.16;
+      }
+      .kaofield .b {
+        color: var(--cyan);
+      }
+      .kaofield .c {
+        color: var(--pink);
+      }
+      .kaofield .d {
+        color: var(--yell);
+      }
+
+      /* ── Alert bar ── */
+      .alertbar {
+        background: var(--yell);
+        color: var(--ink);
+        font-family: var(--term);
+        font-size: 19px;
+        overflow: hidden;
+        border-bottom: 3px double var(--ink);
+        position: relative;
+        z-index: 5;
+      }
+      .alertbar .track {
+        display: flex;
+        gap: 54px;
+        width: max-content;
+        padding: 5px 0;
+        animation: slideL 22s linear infinite;
+      }
+      .alertbar span {
+        white-space: nowrap;
+      }
+
+      /* ── Nav ── */
+      nav {
+        position: relative;
+        z-index: 5;
+        border-bottom: 1px dashed var(--line);
+        background: rgba(0, 0, 0, 0.25);
+      }
+      .navin {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        padding: 16px 0;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 900;
+        font-size: 21px;
+      }
+      .logomark {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        background: var(--mint);
+        color: var(--void);
+        font-family: var(--kao);
+        font-weight: 800;
+        font-size: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 3px 3px 0 var(--pink);
+        transform: rotate(-4deg);
+      }
+      .logo:hover .logomark {
+        animation: wobble 0.4s ease infinite;
+      }
+      .navlinks {
+        display: flex;
+        gap: 22px;
+        margin-left: auto;
+        font-family: var(--term);
+        font-size: 19px;
+        color: var(--sub);
+      }
+      .navlinks a:hover {
+        color: var(--mint);
+        text-decoration: underline wavy var(--pink);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 900;
+        font-size: 15px;
+        padding: 11px 22px;
+        cursor: pointer;
+        border: 2px solid var(--void);
+        transition:
+          transform 0.1s ease,
+          box-shadow 0.1s ease;
+      }
+      .btn-mint {
+        background: var(--mint);
+        color: var(--void);
+        box-shadow: 4px 4px 0 var(--pink);
+        transform: rotate(-1deg);
+      }
+      .btn-mint:hover {
+        transform: rotate(1deg) translate(-2px, -2px);
+        box-shadow: 7px 7px 0 var(--pink);
+      }
+      .btn-ghost {
+        background: transparent;
+        border: 2px dashed var(--line);
+        color: var(--paper);
+        box-shadow: none;
+        transform: rotate(0.5deg);
+      }
+      .btn-ghost:hover {
+        border-color: var(--cyan);
+        color: var(--cyan);
+        transform: rotate(-0.5deg);
+      }
+      .btn .kao {
+        font-family: var(--kao);
+        font-weight: 700;
+      }
+
+      /* ── Hero ── */
+      .hero {
+        position: relative;
+        padding: 64px 0 30px;
+        text-align: center;
+      }
+      .hero .wrap {
+        z-index: 2;
+      }
+      .eyebrow {
+        display: inline-block;
+        white-space: nowrap;
+        font-family: var(--term);
+        font-size: 20px;
+        color: var(--ink);
+        background: var(--cyan);
+        padding: 4px 16px;
+        transform: rotate(-1.5deg);
+        box-shadow:
+          3px 3px 0 var(--void2),
+          3px 3px 0 1px var(--pink);
+      }
+      h1 {
+        font-size: 84px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 0.99;
+        margin: 30px auto 0;
+        max-width: 980px;
+        text-transform: uppercase;
+      }
+      h1 .w1 {
+        display: inline-block;
+        transform: rotate(-2deg);
+        animation: glitch 5s steps(1) infinite;
+      }
+      h1 .w2 {
+        display: inline-block;
+        transform: rotate(1.5deg);
+        color: var(--void);
+        background: var(--mint);
+        padding: 0 18px;
+        box-shadow: 6px 6px 0 var(--pink);
+      }
+      h1 .w3 {
+        display: inline-block;
+        font-family: var(--term);
+        font-weight: 400;
+        color: var(--pink);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      h1 .kaoline {
+        font-family: var(--kao);
+        color: var(--mint);
+        white-space: nowrap;
+        font-size: 0.8em;
+      }
+      .hero .lede {
+        font-size: 19px;
+        color: var(--sub);
+        max-width: 640px;
+        margin: 26px auto 0;
+        font-weight: 700;
+        text-wrap: pretty;
+      }
+      .hero .lede b {
+        color: var(--mint);
+      }
+      .hero .lede .x {
+        background: var(--pink);
+        color: var(--void);
+        padding: 0 6px;
+        font-weight: 900;
+        transform: rotate(-1deg);
+        display: inline-block;
+      }
+      .cta-row {
+        display: flex;
+        gap: 18px;
+        justify-content: center;
+        margin-top: 36px;
+        flex-wrap: wrap;
+      }
+      .cta-note {
+        margin-top: 18px;
+        font-family: var(--term);
+        font-size: 19px;
+        color: var(--sub);
+      }
+      .cta-note .kao {
+        font-family: var(--kao);
+        color: var(--mint);
+      }
+
+      /* Floating stickers in hero */
+      .sticker {
+        position: absolute;
+        font-family: var(--kao);
+        font-weight: 800;
+        z-index: 3;
+        padding: 8px 14px;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+      .stk1 {
+        top: 120px;
+        left: 1%;
+        background: var(--pink);
+        color: var(--void);
+        transform: rotate(-9deg);
+        box-shadow: 4px 4px 0 var(--cyan);
+        font-size: 17px;
+      }
+      .stk2 {
+        top: 300px;
+        right: 1%;
+        background: var(--cyan);
+        color: var(--void);
+        transform: rotate(7deg);
+        box-shadow: 4px 4px 0 var(--pink);
+        font-size: 15px;
+      }
+      .stk3 {
+        top: 60px;
+        right: 6%;
+        background: var(--yell);
+        color: var(--void);
+        transform: rotate(-5deg);
+        box-shadow: 4px 4px 0 var(--mint);
+        font-family: var(--term);
+        font-size: 18px;
+      }
+      .stk4 {
+        top: 390px;
+        left: 4%;
+        background: var(--mint);
+        color: var(--void);
+        transform: rotate(5deg);
+        box-shadow: 4px 4px 0 var(--yell);
+        font-size: 15px;
+      }
+      @media (max-width: 900px) {
+        .sticker {
+          display: none;
+        }
+      }
+
+      /* ── Marquees ── */
+      .marquee {
+        overflow: hidden;
+        position: relative;
+        z-index: 2;
+        border-top: 1px dashed var(--line);
+        border-bottom: 1px dashed var(--line);
+      }
+      .marquee + .marquee {
+        border-top: none;
+      }
+      .marquee-track {
+        display: flex;
+        gap: 44px;
+        width: max-content;
+        padding: 10px 0;
+        font-family: var(--kao);
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--mint);
+      }
+      .m-l .marquee-track {
+        animation: slideL 50s linear infinite;
+      }
+      .m-r .marquee-track {
+        animation: slideR 64s linear infinite;
+        font-size: 17px;
+        opacity: 0.7;
+      }
+      .marquee-track span:nth-child(3n) {
+        color: var(--cyan);
+      }
+      .marquee-track span:nth-child(3n + 1) {
+        color: var(--pink);
+      }
+      .marquee-track span:nth-child(7n) {
+        color: var(--yell);
+      }
+
+      /* ── App window ── */
+      .appshot {
+        position: relative;
+        padding: 56px 0 0;
+        z-index: 2;
+      }
+      .window {
+        max-width: 980px;
+        margin: 0 auto;
+        overflow: hidden;
+        background: var(--void2);
+        border: 2px solid var(--mint);
+        box-shadow:
+          10px 10px 0 var(--pink),
+          10px 10px 0 2px var(--mint);
+        text-align: left;
+        transform: rotate(-0.6deg);
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: var(--mint);
+        color: var(--void);
+        border-bottom: 2px solid var(--mint);
+      }
+      .dot {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 2px solid var(--void);
+      }
+      .dot.r {
+        background: var(--red);
+      }
+      .dot.y {
+        background: var(--yell);
+      }
+      .dot.g {
+        background: var(--cyan);
+      }
+      .titlebar .tname {
+        flex: 1;
+        text-align: center;
+        font-family: var(--term);
+        font-size: 20px;
+        margin-right: 44px;
+        font-weight: 400;
+      }
+      .winbody {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+      }
+      .pane {
+        padding: 26px 28px;
+      }
+      .pane + .pane {
+        border-left: 1px dashed var(--line);
+      }
+      .plabel {
+        font-family: var(--term);
+        font-size: 19px;
+        color: var(--sub);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-transform: uppercase;
+      }
+      .plabel .kao {
+        font-family: var(--kao);
+        font-size: 15px;
+        text-transform: none;
+        color: var(--mint);
+      }
+      .sigcard {
+        background: var(--card);
+        border: 1px solid var(--line);
+        padding: 16px 18px;
+      }
+      .sigcard + .sigcard {
+        margin-top: 12px;
+      }
+      .sigrow {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        font-size: 14px;
+      }
+      .sigrow + .sigrow {
+        margin-top: 8px;
+      }
+      .sigrow .k {
+        color: var(--sub);
+        font-weight: 700;
+      }
+      .sigrow .v {
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      .sigrow .v.hl {
+        color: var(--mint);
+      }
+      .decoded {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.75;
+        color: var(--paper);
+        background: var(--void);
+        padding: 13px 15px;
+        margin-top: 12px;
+        border: 1px dashed var(--line);
+      }
+      .decoded .fn {
+        color: var(--cyan);
+      }
+      .decoded .addr {
+        color: var(--mint);
+      }
+      .decoded .num {
+        color: var(--yell);
+      }
+      .decoded .cm {
+        color: var(--sub);
+      }
+      .simline {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .simline + .simline {
+        margin-top: 10px;
+      }
+      .simline .kao {
+        font-family: var(--kao);
+        flex-shrink: 0;
+        font-weight: 700;
+      }
+      .simline .delta {
+        font-family: var(--mono);
+        font-size: 13px;
+        margin-left: auto;
+      }
+      .delta.minus {
+        color: var(--pink);
+      }
+      .delta.plus {
+        color: var(--mint);
+      }
+      .checkline {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--sub);
+      }
+      .checkline + .checkline {
+        margin-top: 8px;
+      }
+      .checkline .tick {
+        color: var(--mint);
+        font-family: var(--mono);
+        font-weight: 700;
+      }
+      .signers {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .signer {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--kao);
+        font-size: 11px;
+        background: var(--void);
+        border: 1.5px solid var(--mint);
+        color: var(--mint);
+      }
+      .signer.pending {
+        border: 1.5px dashed var(--line);
+        color: var(--sub);
+      }
+      .sigstatus {
+        font-family: var(--term);
+        font-size: 17px;
+        color: var(--sub);
+        margin-left: 6px;
+      }
+      .signbtn {
+        margin-top: 18px;
+        width: 100%;
+        border: 2px solid var(--void);
+        padding: 13px;
+        font-family: var(--body);
+        font-weight: 900;
+        font-size: 15.5px;
+        color: var(--void);
+        cursor: pointer;
+        background: var(--mint);
+        box-shadow: 4px 4px 0 var(--pink);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .signbtn:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 6px 6px 0 var(--pink);
+      }
+      .signbtn .kao {
+        font-family: var(--kao);
+        font-weight: 700;
+      }
+
+      /* ── Section headings ── */
+      section {
+        position: relative;
+      }
+      .sechead {
+        text-align: center;
+        padding: 96px 0 0;
+        position: relative;
+        z-index: 2;
+      }
+      .sechead h2 {
+        font-size: 48px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+      }
+      .sechead h2 .hl {
+        background: var(--pink);
+        color: var(--void);
+        padding: 0 12px;
+        display: inline-block;
+        transform: rotate(-1deg);
+        box-shadow: 4px 4px 0 var(--cyan);
+      }
+      .sechead h2 .kao {
+        font-family: var(--kao);
+        color: var(--mint);
+        text-transform: none;
+      }
+      .sechead p {
+        font-size: 17px;
+        color: var(--sub);
+        font-weight: 700;
+        max-width: 580px;
+        margin: 16px auto 0;
+        text-wrap: pretty;
+      }
+
+      /* ── Features — sticker wall ── */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        margin-top: 48px;
+        position: relative;
+        z-index: 2;
+      }
+      .feat {
+        background: var(--void2);
+        border: 2px solid var(--line);
+        padding: 26px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+        position: relative;
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease,
+          box-shadow 0.12s ease;
+      }
+      .feat:nth-child(odd) {
+        transform: rotate(-1deg);
+      }
+      .feat:nth-child(even) {
+        transform: rotate(1deg);
+      }
+      .feat:hover {
+        transform: rotate(0deg) translateY(-4px);
+        border-color: var(--mint);
+        box-shadow: 8px 8px 0 var(--mint);
+        z-index: 3;
+      }
+      .feat:nth-child(3n + 2):hover {
+        border-color: var(--cyan);
+        box-shadow: 8px 8px 0 var(--cyan);
+      }
+      .feat:nth-child(3n):hover {
+        border-color: var(--pink);
+        box-shadow: 8px 8px 0 var(--pink);
+      }
+      .feat .face {
+        font-family: var(--kao);
+        font-weight: 700;
+        font-size: 25px;
+        color: var(--void);
+        background: var(--mint);
+        align-self: flex-start;
+        padding: 8px 14px;
+        white-space: nowrap;
+        transform: rotate(-2deg);
+        box-shadow: 3px 3px 0 var(--pink);
+      }
+      .feat:nth-child(3n + 2) .face {
+        background: var(--cyan);
+        box-shadow: 3px 3px 0 var(--yell);
+        transform: rotate(2deg);
+      }
+      .feat:nth-child(3n) .face {
+        background: var(--pink);
+        box-shadow: 3px 3px 0 var(--cyan);
+        transform: rotate(-1deg);
+      }
+      .feat h3 {
+        font-size: 20px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+      }
+      .feat p {
+        font-size: 14.5px;
+        color: var(--sub);
+        font-weight: 700;
+        text-wrap: pretty;
+      }
+      .feat .tag {
+        margin-top: auto;
+        align-self: flex-start;
+        font-family: var(--term);
+        font-size: 18px;
+        color: var(--mint);
+        border: 1px dashed var(--mintdk);
+        padding: 1px 10px;
+      }
+      .feat .num {
+        position: absolute;
+        top: -14px;
+        right: -10px;
+        font-family: var(--term);
+        font-size: 26px;
+        background: var(--yell);
+        color: var(--void);
+        padding: 0 10px;
+        transform: rotate(6deg);
+        border: 2px solid var(--void);
+      }
+
+      /* ── Zero-JS band ── */
+      .zeroband {
+        margin-top: 120px;
+        background: var(--mint);
+        color: var(--void);
+        position: relative;
+        overflow: hidden;
+        border-top: 4px double var(--void);
+        border-bottom: 4px double var(--void);
+      }
+      .zeroband .kaofield span {
+        color: var(--void);
+        opacity: 0.12;
+      }
+      .zeroin {
+        padding: 84px 0;
+        text-align: center;
+        position: relative;
+        z-index: 2;
+      }
+      .zeroin .bigkao {
+        font-family: var(--kao);
+        font-size: 46px;
+        font-weight: 800;
+      }
+      .zeroin h2 {
+        font-size: 52px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        margin-top: 14px;
+        text-transform: uppercase;
+      }
+      .zeroin h2 .strike {
+        text-decoration: line-through var(--red) 5px;
+      }
+      .zeroin p {
+        font-size: 17.5px;
+        font-weight: 800;
+        max-width: 620px;
+        margin: 16px auto 0;
+        text-wrap: pretty;
+      }
+      .proof {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 28px;
+        font-family: var(--term);
+        font-size: 22px;
+        color: var(--mint);
+        background: var(--void);
+        padding: 10px 24px;
+        transform: rotate(-1deg);
+        box-shadow: 5px 5px 0 var(--pink);
+      }
+      .proof .kao {
+        font-family: var(--kao);
+        font-size: 16px;
+      }
+      .viewsrc {
+        margin-top: 18px;
+        font-family: var(--term);
+        font-size: 19px;
+      }
+      .viewsrc a {
+        text-decoration: underline wavy var(--pink);
+      }
+
+      /* ── Stack strip ── */
+      .stack {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        margin-top: 48px;
+        position: relative;
+        z-index: 2;
+      }
+      .stackcard {
+        background: var(--void2);
+        border: 1px dashed var(--line);
+        padding: 26px;
+      }
+      .stackcard:nth-child(1) {
+        transform: rotate(-0.8deg);
+      }
+      .stackcard:nth-child(3) {
+        transform: rotate(0.8deg);
+      }
+      .stackcard .nm {
+        font-family: var(--term);
+        font-size: 26px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--mint);
+      }
+      .stackcard:nth-child(2) .nm {
+        color: var(--cyan);
+      }
+      .stackcard:nth-child(3) .nm {
+        color: var(--pink);
+      }
+      .stackcard .nm .kao {
+        font-family: var(--kao);
+        font-size: 17px;
+      }
+      .stackcard p {
+        font-size: 14px;
+        color: var(--sub);
+        font-weight: 700;
+        margin-top: 10px;
+        text-wrap: pretty;
+      }
+
+      /* ── Finale / Download ── */
+      .finale {
+        position: relative;
+        text-align: center;
+        padding: 130px 0 90px;
+        overflow: hidden;
+      }
+      .finale .wrap {
+        z-index: 2;
+      }
+      .finale h2 {
+        font-size: 62px;
+        font-weight: 900;
+        letter-spacing: -0.025em;
+        text-transform: uppercase;
+      }
+      .finale h2 .kao {
+        font-family: var(--kao);
+        color: var(--mint);
+        text-transform: none;
+      }
+      .finale p {
+        font-size: 17px;
+        color: var(--sub);
+        font-weight: 700;
+        margin-top: 14px;
+      }
+      .platforms {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 34px;
+        flex-wrap: wrap;
+      }
+      .plat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        background: var(--void2);
+        border: 2px solid var(--line);
+        padding: 15px 30px;
+        font-weight: 900;
+        font-size: 15px;
+        cursor: pointer;
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease,
+          box-shadow 0.12s ease;
+      }
+      .plat:nth-child(1) {
+        transform: rotate(-1.5deg);
+      }
+      .plat:nth-child(3) {
+        transform: rotate(1.5deg);
+      }
+      .plat:hover {
+        transform: rotate(0deg) translate(-2px, -2px);
+        border-color: var(--mint);
+        color: var(--mint);
+        box-shadow: 6px 6px 0 var(--mint);
+      }
+      .plat .sub {
+        font-family: var(--term);
+        font-size: 17px;
+        color: var(--sub);
+        font-weight: 400;
+      }
+
+      /* ── 88x31 badge wall ── */
+      .badges {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 44px;
+        flex-wrap: wrap;
+      }
+      .b88 {
+        width: 88px;
+        height: 31px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--term);
+        font-size: 15px;
+        line-height: 1;
+        text-align: center;
+        border: 1px solid var(--line);
+        background: var(--void2);
+        color: var(--sub);
+        image-rendering: pixelated;
+      }
+      .b88.m {
+        background: var(--mint);
+        color: var(--void);
+        border-color: var(--void);
+      }
+      .b88.p {
+        background: var(--pink);
+        color: var(--void);
+        border-color: var(--void);
+      }
+      .b88.c {
+        background: var(--cyan);
+        color: var(--void);
+        border-color: var(--void);
+      }
+      .b88.y {
+        background: var(--yell);
+        color: var(--void);
+        border-color: var(--void);
+      }
+      .b88.blink {
+        animation: blinkslow 1.4s steps(1) infinite;
+      }
+      .counter {
+        margin-top: 22px;
+        font-family: var(--term);
+        font-size: 20px;
+        color: var(--sub);
+      }
+      .counter .digits {
+        background: #000;
+        color: var(--mint);
+        padding: 2px 8px;
+        letter-spacing: 3px;
+        border: 1px solid var(--line);
+        display: inline-block;
+      }
+
+      /* ── Footer ── */
+      footer {
+        border-top: 1px dashed var(--line);
+        position: relative;
+        z-index: 2;
+        background: rgba(0, 0, 0, 0.3);
+      }
+      .footin {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 26px 0;
+        font-family: var(--term);
+        font-size: 19px;
+        color: var(--sub);
+        flex-wrap: wrap;
+      }
+      .footin .kao {
+        font-family: var(--kao);
+        color: var(--mint);
+        font-size: 15px;
+      }
+      .footlinks {
+        margin-left: auto;
+        display: flex;
+        gap: 22px;
+      }
+      .footlinks a:hover {
+        color: var(--mint);
+        text-decoration: underline wavy var(--pink);
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 960px) {
+        h1 {
+          font-size: 54px;
+        }
+        .features,
+        .stack {
+          grid-template-columns: 1fr 1fr;
+        }
+        .winbody {
+          grid-template-columns: 1fr;
+        }
+        .pane + .pane {
+          border-left: none;
+          border-top: 1px dashed var(--line);
+        }
+        .finale h2 {
+          font-size: 44px;
+        }
+      }
+      @media (max-width: 640px) {
+        h1 {
+          font-size: 40px;
+        }
+        .features,
+        .stack {
+          grid-template-columns: 1fr;
+        }
+        .navlinks {
+          display: none;
+        }
+        .zeroin h2 {
+          font-size: 34px;
+        }
+        .finale h2 {
+          font-size: 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ───────────── ALERT BAR ───────────── -->
+    <div class="alertbar" aria-hidden="true">
+      <div class="track">
+        <span>★ KAO v0 IS OUT ★</span><span>(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ZERO JAVASCRIPT</span
+        ><span>YOUR RPC IS LYING TO YOU</span
+        ><span>(￢‿￢ ) VERIFY, DON'T TRUST</span
+        ><span>SAFE MULTISIG FROM DAY 0</span
+        ><span>｡ﾟ(TヮT)ﾟ｡ STOP SIGNING HEX</span
+        ><span>SIMULATE LOCALLY OR PERISH</span
+        ><span>(`･ω･´)ゞ HELIOS INSIDE</span> <span>★ KAO v0 IS OUT ★</span
+        ><span>(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ZERO JAVASCRIPT</span
+        ><span>YOUR RPC IS LYING TO YOU</span
+        ><span>(￢‿￢ ) VERIFY, DON'T TRUST</span
+        ><span>SAFE MULTISIG FROM DAY 0</span
+        ><span>｡ﾟ(TヮT)ﾟ｡ STOP SIGNING HEX</span
+        ><span>SIMULATE LOCALLY OR PERISH</span
+        ><span>(`･ω･´)ゞ HELIOS INSIDE</span>
+      </div>
+    </div>
+
+    <!-- ───────────── NAV ───────────── -->
+    <nav>
+      <div class="wrap navin">
+        <a class="logo" href="#"><span class="logomark">ツ</span>KAO</a>
+        <div class="navlinks">
+          <a href="#features">[features]</a>
+          <a href="#trust">[trust]</a>
+          <a href="#download">[download]</a>
+          <a href="#">[docs]</a>
+        </div>
+        <a class="btn btn-mint" href="#download"
+          >DOWNLOAD <span class="kao">＼(＾▽＾)／</span></a
+        >
+      </div>
+    </nav>
+
+    <!-- ───────────── HERO ───────────── -->
+    <header class="hero">
+      <div class="kaofield" aria-hidden="true">
+        <span
+          style="top: 6%; left: 4%; font-size: 24px; transform: rotate(-8deg)"
+          >(✯◡✯)</span
+        >
+        <span
+          class="b"
+          style="top: 16%; left: 14%; font-size: 16px; transform: rotate(5deg)"
+          >٩(◕‿◕｡)۶</span
+        >
+        <span
+          class="c"
+          style="top: 32%; left: 6%; font-size: 20px; transform: rotate(-4deg)"
+          >(☆▽☆)</span
+        >
+        <span
+          class="d"
+          style="top: 50%; left: 12%; font-size: 15px; transform: rotate(7deg)"
+          >(￣ω￣)</span
+        >
+        <span
+          class="b"
+          style="top: 66%; left: 5%; font-size: 26px; transform: rotate(-6deg)"
+          >(´｡• ω •｡`)</span
+        >
+        <span
+          class="c"
+          style="top: 84%; left: 13%; font-size: 14px; transform: rotate(3deg)"
+          >(o･ω･o)</span
+        >
+        <span
+          style="top: 8%; right: 5%; font-size: 19px; transform: rotate(6deg)"
+          >ヽ(・∀・)ﾉ</span
+        >
+        <span
+          class="b"
+          style="
+            top: 22%;
+            right: 14%;
+            font-size: 15px;
+            transform: rotate(-5deg);
+          "
+          >(⌒▽⌒)☆</span
+        >
+        <span
+          class="c"
+          style="top: 38%; right: 4%; font-size: 25px; transform: rotate(4deg)"
+          >(✧ω✧)</span
+        >
+        <span
+          class="d"
+          style="
+            top: 56%;
+            right: 11%;
+            font-size: 16px;
+            transform: rotate(-7deg);
+          "
+          >(*´▽`*)</span
+        >
+        <span
+          class="b"
+          style="top: 72%; right: 5%; font-size: 21px; transform: rotate(5deg)"
+          >°˖✧◝(⁰▿⁰)◜✧˖°</span
+        >
+        <span
+          class="c"
+          style="
+            top: 88%;
+            right: 15%;
+            font-size: 15px;
+            transform: rotate(-3deg);
+          "
+          >( ´ ω ` )</span
+        >
+        <span
+          style="top: 4%; left: 39%; font-size: 14px; transform: rotate(4deg)"
+          >☆ ～('▽^人)</span
+        >
+        <span
+          class="b"
+          style="top: 3%; right: 31%; font-size: 15px; transform: rotate(-5deg)"
+          >(o^▽^o)</span
+        >
+        <span
+          class="c"
+          style="top: 93%; left: 37%; font-size: 16px; transform: rotate(6deg)"
+          >(＠＾◡＾)</span
+        >
+        <span
+          class="d"
+          style="
+            top: 91%;
+            right: 33%;
+            font-size: 14px;
+            transform: rotate(-4deg);
+          "
+          >ヽ(*・ω・)ﾉ</span
+        >
+        <span
+          style="top: 44%; left: 28%; font-size: 13px; transform: rotate(8deg)"
+          >(b ᵔ▽ᵔ)b</span
+        >
+        <span
+          class="c"
+          style="
+            top: 46%;
+            right: 27%;
+            font-size: 13px;
+            transform: rotate(-8deg);
+          "
+          >o(>ω<)o</span
+        >
+      </div>
+
+      <span class="sticker stk1">100% A BLOCKCHAIN ＼(★ω★)/</span>
+      <span class="sticker stk2">not a browser tab (¬‿¬ )</span>
+      <span class="sticker stk3"
+        >[NEW!!] v0.1.0 <span class="blink">█</span></span
+      >
+      <span class="sticker stk4">(╯✧▽✧)╯ rust inside</span>
+
+      <div class="wrap">
+        <span class="eyebrow"
+          >&gt;&gt; self-custody for ethereum · desktop_
+          <span class="blink">█</span></span
+        >
+        <h1>
+          <span class="w1">Serious</span> <span class="w2">security.</span
+          ><br />
+          <span class="w3">friendly_face</span>
+          <span class="kaoline">(◕‿◕)</span>
+        </h1>
+        <p class="lede">
+          Kao is a <b>desktop wallet</b> that verifies everything and
+          <span class="x">trusts nothing</span> — then smiles about it. Safe
+          multisig from day one, every tx simulated on your machine, every
+          balance proven against consensus.
+        </p>
+        <div class="cta-row">
+          <a
+            class="btn btn-mint"
+            href="#download"
+            style="font-size: 17px; padding: 14px 30px"
+            >DOWNLOAD KAO <span class="kao">o(≧▽≦)o</span></a
+          >
+          <a
+            class="btn btn-ghost"
+            href="#features"
+            style="font-size: 17px; padding: 14px 30px"
+            >see features ↓</a
+          >
+        </div>
+        <div class="cta-note">
+          macOS · Linux · Windows — free &amp; open source
+          <span class="kao">(^人^)</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ───────────── MARQUEES ───────────── -->
+    <div class="marquee m-l" aria-hidden="true">
+      <div class="marquee-track">
+        <span>(* ^ ω ^)</span><span>(´ ∀ ` *)</span><span>٩(◕‿◕｡)۶</span
+        ><span>(o^▽^o)</span><span>(⌒▽⌒)☆</span><span>ヽ(・∀・)ﾉ</span
+        ><span>(￣ω￣)</span><span>(o･ω･o)</span><span>(＠＾◡＾)</span
+        ><span>(^人^)</span><span>(o´▽`o)</span><span>(*´▽`*)</span
+        ><span>( ´ ω ` )</span><span>ヽ(o＾▽＾o)ノ</span><span>(*°▽°*)</span
+        ><span>(✧ω✧)</span><span>(☆ω☆)</span><span>(◕‿◕)</span
+        ><span>╰(▔∀▔)╯</span><span>(─‿‿─)</span><span>(*^‿^*)</span
+        ><span>(✯◡✯)</span><span>(*≧ω≦*)</span><span>(☆▽☆)</span
+        ><span>(⌒‿⌒)</span><span>＼(≧▽≦)／</span><span>∑d(°∀°d)</span
+        ><span>(b ᵔ▽ᵔ)b</span><span>(๑˃ᴗ˂)ﻭ</span><span>( ˙꒳​˙ )</span>
+        <span>(* ^ ω ^)</span><span>(´ ∀ ` *)</span><span>٩(◕‿◕｡)۶</span
+        ><span>(o^▽^o)</span><span>(⌒▽⌒)☆</span><span>ヽ(・∀・)ﾉ</span
+        ><span>(￣ω￣)</span><span>(o･ω･o)</span><span>(＠＾◡＾)</span
+        ><span>(^人^)</span><span>(o´▽`o)</span><span>(*´▽`*)</span
+        ><span>( ´ ω ` )</span><span>ヽ(o＾▽＾o)ノ</span><span>(*°▽°*)</span
+        ><span>(✧ω✧)</span><span>(☆ω☆)</span><span>(◕‿◕)</span
+        ><span>╰(▔∀▔)╯</span><span>(─‿‿─)</span><span>(*^‿^*)</span
+        ><span>(✯◡✯)</span><span>(*≧ω≦*)</span><span>(☆▽☆)</span
+        ><span>(⌒‿⌒)</span><span>＼(≧▽≦)／</span><span>∑d(°∀°d)</span
+        ><span>(b ᵔ▽ᵔ)b</span><span>(๑˃ᴗ˂)ﻭ</span><span>( ˙꒳​˙ )</span>
+      </div>
+    </div>
+    <div class="marquee m-r" aria-hidden="true">
+      <div class="marquee-track">
+        <span>(/ω＼)</span><span>(〃ω〃)</span><span>(〃▽〃)</span
+        ><span>(´ω｀*)</span><span>(´∀｀•)</span><span>(ﾉ∀`♥)</span
+        ><span>(*^^*)</span><span>(ﾟ∀ﾟ)</span><span>(ﾉ^^)ﾉ</span
+        ><span>( ^^)Y</span><span>＼(＾O＾)／</span><span>(ノ´∀｀)ノ</span
+        ><span>〇(＞∀＜)〇</span><span>＼(^◇^)／</span><span>ヽ(〃∀〃)ﾉ</span
+        ><span>ヾ(´ー｀)ノ</span><span>(゜ー゜＊)</span><span>(´-ω-)</span
+        ><span>(￣ω￣●)</span><span>(´ω｀o)</span><span>(~∀~o)</span
+        ><span>( ´_ゝ`)</span><span>(´◡~)</span><span>(◜◡‾)</span
+        ><span>(՞ټ՞)</span><span>(◔ڼ◔)</span><span>( ；∀；)</span
+        ><span>v(T▽T)</span><span>(ノω＾、)</span><span>ヽ(；▽；)ノ</span>
+        <span>(/ω＼)</span><span>(〃ω〃)</span><span>(〃▽〃)</span
+        ><span>(´ω｀*)</span><span>(´∀｀•)</span><span>(ﾉ∀`♥)</span
+        ><span>(*^^*)</span><span>(ﾟ∀ﾟ)</span><span>(ﾉ^^)ﾉ</span
+        ><span>( ^^)Y</span><span>＼(＾O＾)／</span><span>(ノ´∀｀)ノ</span
+        ><span>〇(＞∀＜)〇</span><span>＼(^◇^)／</span><span>ヽ(〃∀〃)ﾉ</span
+        ><span>ヾ(´ー｀)ノ</span><span>(゜ー゜＊)</span><span>(´-ω-)</span
+        ><span>(￣ω￣●)</span><span>(´ω｀o)</span><span>(~∀~o)</span
+        ><span>( ´_ゝ`)</span><span>(´◡~)</span><span>(◜◡‾)</span
+        ><span>(՞ټ՞)</span><span>(◔ڼ◔)</span><span>( ；∀；)</span
+        ><span>v(T▽T)</span><span>(ノω＾、)</span><span>ヽ(；▽；)ノ</span>
+      </div>
+    </div>
+
+    <!-- ───────────── FEATURES ───────────── -->
+    <section id="features">
+      <div class="kaofield" aria-hidden="true">
+        <span
+          style="top: 10%; left: 2%; font-size: 22px; transform: rotate(-6deg)"
+          >(☆▽☆)</span
+        >
+        <span
+          class="b"
+          style="top: 45%; left: 1%; font-size: 15px; transform: rotate(5deg)"
+          >(⌒‿⌒)</span
+        >
+        <span
+          class="c"
+          style="top: 80%; left: 3%; font-size: 19px; transform: rotate(-3deg)"
+          >(￢‿￢ )</span
+        >
+        <span
+          class="d"
+          style="top: 15%; right: 2%; font-size: 18px; transform: rotate(4deg)"
+          >(¯▿¯)</span
+        >
+        <span
+          class="b"
+          style="top: 52%; right: 1%; font-size: 22px; transform: rotate(-5deg)"
+          >( ˙▿˙ )</span
+        >
+        <span
+          class="c"
+          style="top: 85%; right: 3%; font-size: 15px; transform: rotate(6deg)"
+          >(๑˘︶˘๑)</span
+        >
+      </div>
+      <div class="wrap">
+        <div class="sechead">
+          <h2>
+            <span class="hl">Paranoid</span> under the hood
+            <span class="kao">(￢‿￢)</span>
+          </h2>
+          <p>
+            Every feature exists to answer one question: HOW DO YOU KNOW? Kao
+            never asks you to trust a server, an RPC, or a blob of hex.
+          </p>
+        </div>
+        <div class="features">
+          <div class="feat">
+            <span class="num">#01</span>
+            <span class="face">(`･ω･´)</span>
+            <h3>Safe multisig from v0</h3>
+            <p>
+              Not bolted on later — Kao speaks Safe natively from its first
+              release. Propose, collect signatures, and execute without ever
+              touching a web app.
+            </p>
+            <span class="tag">safe · native</span>
+          </div>
+          <div class="feat">
+            <span class="num">#02</span>
+            <span class="face">(◕‿◕)</span>
+            <h3>Clear signing</h3>
+            <p>
+              No more signing mystery hex. Every transaction is decoded into
+              plain words — what moves, where it goes, and what it's allowed to
+              do.
+            </p>
+            <span class="tag">human-readable calldata</span>
+          </div>
+          <div class="feat">
+            <span class="num">#03</span>
+            <span class="face">(๑˃ᴗ˂)ﻭ</span>
+            <h3>Local simulation · revm</h3>
+            <p>
+              Before you sign, Kao runs the transaction on your machine with
+              revm and shows you the exact balance changes. No surprises
+              on-chain.
+            </p>
+            <span class="tag">revm · on-device</span>
+          </div>
+          <div class="feat">
+            <span class="num">#04</span>
+            <span class="face">(￣ω￣)</span>
+            <h3>Zero JavaScript</h3>
+            <p>
+              A native desktop app with no embedded browser, no remote code, no
+              supply-chain roulette. The attack surface a wallet should have:
+              small.
+            </p>
+            <span class="tag">no webview · no remote code</span>
+          </div>
+          <div class="feat">
+            <span class="num">#05</span>
+            <span class="face">(✧ω✧)</span>
+            <h3>Verified balances · helios</h3>
+            <p>
+              Balances come with consensus proofs via an embedded helios light
+              client — verified against Ethereum itself, not somebody's RPC.
+            </p>
+            <span class="tag">helios light client</span>
+          </div>
+          <div class="feat">
+            <span class="num">#06</span>
+            <span class="face">(/ω＼)</span>
+            <h3>Encrypted local database</h3>
+            <p>
+              Your accounts, labels, and history live in an encrypted database
+              on your disk. Nothing synced, nothing phoned home, nothing to
+              subpoena.
+            </p>
+            <span class="tag">encrypted at rest</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── ZERO JS BAND ───────────── -->
+    <section class="zeroband" id="trust">
+      <div class="kaofield" aria-hidden="true">
+        <span
+          style="top: 12%; left: 6%; font-size: 22px; transform: rotate(-7deg)"
+          >(¬‿¬ )</span
+        >
+        <span
+          style="top: 38%; left: 14%; font-size: 15px; transform: rotate(4deg)"
+          >(´-ω-)</span
+        >
+        <span
+          style="top: 66%; left: 7%; font-size: 19px; transform: rotate(-4deg)"
+          >( ´_ゝ`)</span
+        >
+        <span
+          style="top: 85%; left: 18%; font-size: 14px; transform: rotate(5deg)"
+          >(◜◡‾)</span
+        >
+        <span
+          style="top: 15%; right: 7%; font-size: 18px; transform: rotate(6deg)"
+          >(￣ω￣●)</span
+        >
+        <span
+          style="
+            top: 42%;
+            right: 13%;
+            font-size: 22px;
+            transform: rotate(-5deg);
+          "
+          >(´ω｀o)</span
+        >
+        <span
+          style="top: 70%; right: 6%; font-size: 15px; transform: rotate(3deg)"
+          >(゜ー゜＊)</span
+        >
+        <span
+          style="
+            top: 88%;
+            right: 16%;
+            font-size: 19px;
+            transform: rotate(-6deg);
+          "
+          >(~∀~o)</span
+        >
+      </div>
+      <div class="wrap zeroin">
+        <div class="bigkao">(￢‿￢ )</div>
+        <h2>
+          This page has <span class="strike">cookies</span> zero JavaScript too.
+        </h2>
+        <p>
+          We mean it about attack surface. Kao the app runs no JS — and neither
+          does this page. Every marquee, every blink, every glitch you see is
+          pure HTML + CSS. What you see is what you got.
+        </p>
+        <div class="proof">
+          <span class="kao">(`･ω･´)ゞ</span> &lt;script&gt; tags on this page: 0
+          <span class="blink">█</span>
+        </div>
+        <div class="viewsrc">
+          → don't believe us? hit Ctrl+U and VIEW SOURCE ←
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── STACK ───────────── -->
+    <section>
+      <div class="wrap">
+        <div class="sechead">
+          <h2>
+            Built on <span class="hl">boring,</span> audited things
+            <span class="kao">( ‾́ ◡ ‾́ )</span>
+          </h2>
+          <p>
+            Kao doesn't invent cryptography or consensus. It composes the
+            most-reviewed pieces of the Ethereum stack and wraps them in a face.
+          </p>
+        </div>
+        <div class="stack">
+          <div class="stackcard">
+            <div class="nm"><span class="kao">(๑˃ᴗ˂)ﻭ</span> &gt; revm</div>
+            <p>
+              The Rust EVM used by reth and Foundry. Kao embeds it to replay
+              your transaction against live state, entirely offline.
+            </p>
+          </div>
+          <div class="stackcard">
+            <div class="nm"><span class="kao">(✧ω✧)</span> &gt; helios</div>
+            <p>
+              A trustless light client. Kao checks every balance and state read
+              against Ethereum consensus proofs — RPCs become untrusted
+              couriers.
+            </p>
+          </div>
+          <div class="stackcard">
+            <div class="nm"><span class="kao">(✿◠‿◠)</span> &gt; safe</div>
+            <p>
+              The most battle-tested multisig contracts on Ethereum. Kao is a
+              first-class Safe client from version zero.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── FINALE / DOWNLOAD ───────────── -->
+    <section class="finale" id="download">
+      <div class="kaofield" aria-hidden="true">
+        <span
+          style="top: 10%; left: 8%; font-size: 26px; transform: rotate(-8deg)"
+          >＼(≧▽≦)／</span
+        >
+        <span
+          class="b"
+          style="top: 34%; left: 3%; font-size: 16px; transform: rotate(5deg)"
+          >(((o(*°▽°*)o)))</span
+        >
+        <span
+          class="c"
+          style="top: 60%; left: 10%; font-size: 21px; transform: rotate(-4deg)"
+          >ヽ(o＾▽＾o)ノ</span
+        >
+        <span
+          class="d"
+          style="top: 84%; left: 5%; font-size: 15px; transform: rotate(6deg)"
+          >(b ᵔ▽ᵔ)b</span
+        >
+        <span
+          class="b"
+          style="top: 14%; right: 6%; font-size: 19px; transform: rotate(4deg)"
+          >╰(▔∀▔)╯</span
+        >
+        <span
+          class="c"
+          style="
+            top: 40%;
+            right: 11%;
+            font-size: 24px;
+            transform: rotate(-6deg);
+          "
+          >٩(◕‿◕)۶</span
+        >
+        <span
+          class="d"
+          style="top: 66%; right: 4%; font-size: 17px; transform: rotate(5deg)"
+          >＼(^ヮ^)/</span
+        >
+        <span
+          class="b"
+          style="
+            top: 88%;
+            right: 13%;
+            font-size: 20px;
+            transform: rotate(-3deg);
+          "
+          >(╯✧▽✧)╯</span
+        >
+        <span
+          class="c"
+          style="top: 5%; left: 42%; font-size: 15px; transform: rotate(3deg)"
+          >☆*:.｡.o(≧▽≦)o.｡.:*☆</span
+        >
+      </div>
+      <div class="wrap">
+        <h2>Your keys deserve a face <span class="kao">ツ</span></h2>
+        <p>Free, open source, and verifiable all the way down.</p>
+        <div class="platforms">
+          <a class="plat" href="#"
+            >macOS <span class="sub">.dmg · universal</span></a
+          >
+          <a class="plat" href="#"
+            >Linux <span class="sub">.AppImage · .deb</span></a
+          >
+          <a class="plat" href="#">Windows <span class="sub">.msi</span></a>
+        </div>
+        <div class="cta-note" style="margin-top: 22px">
+          signed releases · reproducible builds <span class="kao">(^人^)</span>
+        </div>
+
+        <div class="badges" aria-hidden="true">
+          <span class="b88 m">KAO ツ</span>
+          <span class="b88">ZERO JS</span>
+          <span class="b88 p blink">SIGN CLEAR</span>
+          <span class="b88 c">revm ok</span>
+          <span class="b88">helios ✓</span>
+          <span class="b88 y">SAFE 2/3</span>
+          <span class="b88">(◕‿◕)</span>
+          <span class="b88 m blink">NOT A CEX</span>
+          <span class="b88">NO BROWSER</span>
+        </div>
+        <div class="counter">
+          you are visitor № <span class="digits">0001337</span> &nbsp;(✯◡✯)
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── FOOTER ───────────── -->
+    <footer>
+      <div class="wrap footin">
+        <span
+          ><span class="kao">ツ</span> KAO — the wallet with a face — est. block
+          19,000,000</span
+        >
+        <div class="footlinks">
+          <a href="https://github.com/kaowallet/kao">[github]</a>
+          <a href="https://x.com/iamwehi">[@iamwehi]</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
