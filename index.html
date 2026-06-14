@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- KAO_VERSION: v0.1.0  —  update this + find-replace all "v0.1.0" when releasing -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -1053,6 +1054,9 @@
         transform: rotate(-1.5deg);
       }
       .plat:nth-child(3) {
+        transform: rotate(1deg);
+      }
+      .plat:nth-child(4) {
         transform: rotate(1.5deg);
       }
       .plat:hover {
@@ -1729,13 +1733,18 @@
         <h2>Your keys deserve a face <span class="kao">ツ</span></h2>
         <p>Free, open source, and verifiable all the way down.</p>
         <div class="platforms">
-          <a class="plat" href="#"
-            >macOS <span class="sub">.dmg · universal</span></a
+          <a class="plat" href="https://github.com/kaowallet/kao/releases/download/v0.1.0/kao-v0.1.0-aarch64-apple-darwin.dmg"
+            >macOS <span class="sub">.dmg · arm64</span></a
           >
-          <a class="plat" href="#"
-            >Linux <span class="sub">.AppImage · .deb</span></a
+          <a class="plat" href="https://github.com/kaowallet/kao/releases/download/v0.1.0/kao-v0.1.0-x86_64-unknown-linux-gnu.AppImage"
+            >Linux <span class="sub">.AppImage · x64</span></a
           >
-          <a class="plat" href="#">Windows <span class="sub">.msi</span></a>
+          <a class="plat" href="https://github.com/kaowallet/kao/releases/download/v0.1.0/kao-v0.1.0-x86_64-unknown-linux-gnu.deb"
+            >Linux <span class="sub">.deb · x64</span></a
+          >
+          <a class="plat" href="https://github.com/kaowallet/kao/releases/download/v0.1.0/kao-v0.1.0-x86_64-pc-windows-msvc-setup.exe"
+            >Windows <span class="sub">.exe · x64</span></a
+          >
         </div>
         <div class="cta-note" style="margin-top: 22px">
           signed releases · reproducible builds <span class="kao">(^人^)</span>
