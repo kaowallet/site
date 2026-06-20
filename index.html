@@ -1071,6 +1071,56 @@
         color: var(--sub);
         font-weight: 400;
       }
+      .macnote {
+        max-width: 560px;
+        margin: 26px auto 0;
+        text-align: left;
+        border: 2px dashed var(--line);
+        background: var(--void2);
+        padding: 16px 18px;
+        transform: rotate(-0.5deg);
+      }
+      .macnote .lead {
+        font-family: var(--term);
+        font-size: 18px;
+        color: var(--yell);
+        margin-bottom: 8px;
+      }
+      .macnote p {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--sub);
+        margin: 0;
+      }
+      .macnote .cmd {
+        display: block;
+        font-family: var(--term);
+        font-size: 18px;
+        line-height: 1.5;
+        color: var(--mint);
+        background: var(--void);
+        border: 1px solid var(--line);
+        padding: 10px 12px;
+        margin: 12px 0;
+        overflow-x: auto;
+        white-space: nowrap;
+        user-select: all;
+      }
+      .macnote .cmd::before {
+        content: "$ ";
+        color: var(--pink);
+      }
+      .macnote .alt {
+        font-size: 13px;
+        color: var(--sub);
+        margin-top: 6px;
+      }
+      .macnote .alt code {
+        font-family: var(--term);
+        font-size: 15px;
+        color: var(--mint);
+        user-select: all;
+      }
 
       /* ── 88x31 badge wall ── */
       .badges {
@@ -1745,6 +1795,15 @@
           <a class="plat" href="https://github.com/kaowallet/kao/releases/download/v0.1.1/kao-v0.1.1-x86_64-pc-windows-msvc-setup.exe"
             >Windows <span class="sub">.exe · x64</span></a
           >
+        </div>
+        <div class="macnote">
+          <div class="lead">macOS · first launch <span class="kao">(•‿•)</span></div>
+          <p>
+            Builds aren't notarized yet, so macOS quarantines the app. After
+            dragging it to Applications, clear the flag once:
+          </p>
+          <code class="cmd">xattr -dr com.apple.quarantine "/Applications/Kao Wallet.app"</code>
+          <p class="alt">Adjust the path if you installed it elsewhere.</p>
         </div>
         <div class="cta-note" style="margin-top: 22px">
           signed releases · reproducible builds <span class="kao">(^人^)</span>
